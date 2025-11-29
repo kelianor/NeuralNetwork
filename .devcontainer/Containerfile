@@ -1,0 +1,27 @@
+# Container settings
+ARG containerSource=quay.io/fedora/fedora-toolbox
+ARG containerVersion=42
+
+FROM $containerSource:$containerVersion
+
+# Packages
+ARG packageManager=dnf
+ARG packages="@development-tools clang cmake"
+
+COPY etc/dnf/dnf.conf /etc/dnf/dnf.conf
+RUN --mount=type=cache,target=/var/cache/libdnf5 \
+    $packageManager install -y $packages
+
+# User settings
+ARG username=dev
+ARG userid=1000
+ARG usergroups=wheel
+ARG password=dev
+
+RUN adduser -G $usergroups -u $userid -p $password $username
+
+ARG password=
+
+# Et cetera
+
+USER $username
