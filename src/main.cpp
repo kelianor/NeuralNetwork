@@ -311,7 +311,7 @@ class Intellect : public Program
     {
         paint.fill(0.0);
         results = nw.recognise(paint.data);
-        char title[] = "Шлюшны Інтылект";
+        char title[] = "Распознование цифр";
         return Program::init(title, 1200, 750, SDL_WINDOW_RESIZABLE);
     }
     void render()
@@ -352,7 +352,7 @@ class Intellect : public Program
         {
             render();
 
-            // Calculating FPS
+            // Подсчёт кадров в секунду
             SDL_Time currTime = SDL_GetTicks();
             SDL_Time deltaTime = currTime - lastTime;
             frames++;
