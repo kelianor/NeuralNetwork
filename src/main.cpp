@@ -63,7 +63,7 @@ public:
 class NumNeuralNetwork
 {
 private:
-    double **weights1, **weights2, **weights3, *bias1, *bias2, *bias3, output[10];
+    double **weights1, **weights2, **weights3, **weights4, *bias1, *bias2, *bias3, *bias4, output[10];
     
     double** loadWeights(char *path, int m, int n)
     {
@@ -126,67 +126,49 @@ public:
     NumNeuralNetwork()
     {
         // Hidden layer 1
-        weights1 = loadWeights("data/fc1.weight.txt", 784, 128);
-        bias1 = loadBiases("data/fc1.bias.txt", 128);
-        if(weights1 == nullptr | bias1 == nullptr)
-        {
-            SDL_Log("Nullptr!");
-            return;
-        }
-        
+        weights1 = loadWeights("data/fc1.weight.txt", 256, 784);
+        bias1 = loadBiases("data/fc1.bias.txt", 256);
+
         // Hidden layer 2
-        weights2 = loadWeights("data/fc2.weight.txt", 128, 64);
-        bias2 = loadBiases("data/fc2.bias.txt", 64);
-        if(weights2 == nullptr | bias2 == nullptr)
-        {
-            SDL_Log("Nullptr!");
-            return;
-        }
+        weights2 = loadWeights("data/fc2.weight.txt", 128, 256);
+        bias2 = loadBiases("data/fc2.bias.txt", 128);
+
+        // Hidden layer 3
+        weights3 = loadWeights("data/fc3.weight.txt", 64, 128);
+        bias3 = loadBiases("data/fc3.bias.txt", 64);
 
         // Output layer
-        weights3 = loadWeights("data/fc3.weight.txt", 64, 10);
-        bias3 = loadBiases("data/fc3.bias.txt", 10);
-        if(weights3 == nullptr | bias3 == nullptr)
-        {
-            SDL_Log("Nullptr!");
-            return;
-        }
+        weights4 = loadWeights("data/fc4.weight.txt", 10, 64);
+        bias4 = loadBiases("data/fc4.bias.txt", 10);
     }
     double* recognise(double *input)
     {
         Layer in {784, nullptr, nullptr, nullptr, input};
-        Layer hidden1 {128, weights1, bias1, &in};
-        Layer hidden2 {64, weights2, bias2, &hidden1};
-        Layer out {10, weights3, bias3, &hidden2};
+        Layer hidden1 {256, weights1, bias1, &in};
+        Layer hidden2 {128, weights2, bias2, &hidden1};
+        Layer hidden3 {64, weights3, bias3, &hidden2};
+        Layer out {10, weights4, bias4, &hidden3};
 
         hidden1.calculate();
         hidden2.calculate();
+        hidden3.calculate();
         out.calculate();
 
-        // Softmax the result
-        
+        // Softmax
         double max = out.neurons[0];
         for (int i = 1; i < 10; i++) 
-        {
-            if (out.neurons[i] > max) 
-            {
-                max = out.neurons[i];
-            }
-        }
+            if (out.neurons[i] > max) max = out.neurons[i];
 
         double sum = 0.0;
-        for (int i = 0; i < 10; i++) 
-        {
+        for (int i = 0; i < 10; i++) {
             output[i] = exp(out.neurons[i] - max);
             sum += output[i];
         }
-        for (int i = 0; i < 10; i++) 
-        {
-            output[i] /= sum;
-        }
+        for (int i = 0; i < 10; i++) output[i] /= sum;
 
         hidden1.deleteNeruons();
         hidden2.deleteNeruons();
+        hidden3.deleteNeruons();
         out.deleteNeruons();
 
         return output;
