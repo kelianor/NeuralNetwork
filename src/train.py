@@ -46,7 +46,7 @@ for epoch in range(5):
 # Сохраняем веса в текстовый формат
 for name, param in model.named_parameters():
     arr = param.detach().numpy()
-    with open(f"{name}.txt", "w") as f:
+    with open(f"./data/{name}.txt", "w") as f:
         for row in arr:
             if arr.ndim == 1:
                 f.write(f"{row}\n")

@@ -6,7 +6,7 @@ FROM $containerSource:$containerVersion
 
 # Packages
 ARG packageManager=apt
-ARG packages="build-essential g++ cmake pkg-config libsdl3-dev git"
+ARG packages="build-essential g++ cmake pkg-config libsdl3-dev git python3 python3-pip"
 
 RUN --mount=type=cache,target=/var/cache \
     $packageManager update -y
@@ -19,3 +19,6 @@ ARG username=ubuntu
 # Et cetera
 
 USER $username
+
+RUN python3 -m pip config set global.break-system-packages true
+RUN pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu

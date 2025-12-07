@@ -3,12 +3,71 @@
 #include <cmath>
 #include <fstream>
 #include <sstream>
+
 using namespace std;
 
-namespace crapcode {
-    float** loadWeights(char *path, int m, int n)
+class Layer
+{
+private:
+    int output;
+    double **weights, *bias; // weights[out][in] bias[out]
+    Layer *inputNeurons;
+public:
+    double *neurons; // Bad practice :(
+
+    Layer(int out, double **w, double *b, Layer *inNeurons, double *n) : output(out), weights(w), bias(b), inputNeurons(inNeurons), neurons(n)
     {
-        float **arr = new float* [m];
+        
+    }
+
+    Layer(int out, double **w, double *b, Layer *inNeurons) : Layer(out, w, b, inNeurons, new double[out])
+    {
+
+    }
+    double relu(double x)
+    {
+        return x > 0 ? x : 0;
+    }
+    void calculate()
+    {
+        
+        if(neurons == nullptr)
+        {
+            SDL_Log("Нулевой указатель на массив нейронов!");
+            return;
+        }
+
+        if(inputNeurons == nullptr)
+        {
+            SDL_Log("Нулевой указатель на входящий слой!");
+            return;
+        }
+
+        for(int i = 0; i < output; i++)
+        {
+            neurons[i] = bias[i];
+            for(int j = 0; j < (*inputNeurons).output; j++)
+            {
+                neurons[i] += (*inputNeurons).neurons[j] * weights[i][j];
+            }
+            neurons[i] = relu(neurons[i]);
+        }
+    }
+    void deleteNeruons()
+    {
+        delete[] neurons;
+        neurons = nullptr;
+    }
+};
+
+class NumNeuralNetwork
+{
+private:
+    double **weights1, **weights2, **weights3, *bias1, *bias2, *bias3, output[10];
+    
+    double** loadWeights(char *path, int m, int n)
+    {
+        double **arr = new double* [m];
         if(arr == nullptr)
         {
             return arr;
@@ -16,7 +75,7 @@ namespace crapcode {
 
         for(int i = 0; i < m; i++)
         {
-            arr[i] = new float[n];
+            arr[i] = new double[n];
             if(arr[i] == nullptr)
             {
                 return arr;
@@ -43,9 +102,9 @@ namespace crapcode {
         return arr;
     }
 
-    float* loadBiases(char *path, int n)
+    double* loadBiases(char *path, int n)
     {
-        float *arr = new float[n];
+        double *arr = new double[n];
         if(arr == nullptr)
         {
             return arr;
@@ -63,130 +122,92 @@ namespace crapcode {
         file.close();
         return arr;
     }
-
-    inline float relu(float x) 
-    { 
-        return x > 0 ? x : 0; 
-    }
-
-    void softmax(const float* input, int size, float* output) 
+public:
+    NumNeuralNetwork()
     {
-        float max_val = input[0];
-        for (int i = 1; i < size; i++) 
+        // Hidden layer 1
+        weights1 = loadWeights("data/fc1.weight.txt", 784, 128);
+        bias1 = loadBiases("data/fc1.bias.txt", 128);
+        if(weights1 == nullptr | bias1 == nullptr)
         {
-            if (input[i] > max_val) 
+            SDL_Log("Nullptr!");
+            return;
+        }
+        
+        // Hidden layer 2
+        weights2 = loadWeights("data/fc2.weight.txt", 128, 64);
+        bias2 = loadBiases("data/fc2.bias.txt", 64);
+        if(weights2 == nullptr | bias2 == nullptr)
+        {
+            SDL_Log("Nullptr!");
+            return;
+        }
+
+        // Output layer
+        weights3 = loadWeights("data/fc3.weight.txt", 64, 10);
+        bias3 = loadBiases("data/fc3.bias.txt", 10);
+        if(weights3 == nullptr | bias3 == nullptr)
+        {
+            SDL_Log("Nullptr!");
+            return;
+        }
+    }
+    double* recognise(double *input)
+    {
+        Layer in {784, nullptr, nullptr, nullptr, input};
+        Layer hidden1 {128, weights1, bias1, &in};
+        Layer hidden2 {64, weights2, bias2, &hidden1};
+        Layer out {10, weights3, bias3, &hidden2};
+
+        hidden1.calculate();
+        hidden2.calculate();
+        out.calculate();
+
+        // Softmax the result
+        
+        double max = out.neurons[0];
+        for (int i = 1; i < 10; i++) 
+        {
+            if (out.neurons[i] > max) 
             {
-                max_val = input[i];
+                max = out.neurons[i];
             }
         }
 
-        float sum = 0.0f;
-        for (int i = 0; i < size; i++) 
+        double sum = 0.0;
+        for (int i = 0; i < 10; i++) 
         {
-            output[i] = exp(input[i] - max_val);
+            output[i] = exp(out.neurons[i] - max);
             sum += output[i];
         }
-        for (int i = 0; i < size; i++) 
+        for (int i = 0; i < 10; i++) 
         {
             output[i] /= sum;
         }
+
+        hidden1.deleteNeruons();
+        hidden2.deleteNeruons();
+        out.deleteNeruons();
+
+        return output;
     }
+};
 
-    int forward(const float* input) {
-        float **W1 = loadWeights("data/fc1.weight.txt", 784, 128);
-        float *b1 = loadBiases("data/fc1.bias.txt", 128);
-        if(W1 == nullptr | b1 == nullptr)
-        {
-            SDL_Log("Nullptr!");
-            return 0;
-        }
-        
-        float **W2 = loadWeights("data/fc2.weight.txt", 128, 64);
-        float *b2 = loadBiases("data/fc2.bias.txt", 64);
-        if(W2 == nullptr | b2 == nullptr)
-        {
-            SDL_Log("Nullptr!");
-            return 0;
-        }
-
-        float **W3 = loadWeights("data/fc3.weight.txt", 64, 10);
-        float *b3 = loadBiases("data/fc3.bias.txt", 10);
-        if(W3 == nullptr | b3 == nullptr)
-        {
-            SDL_Log("Nullptr!");
-            return 0;
-        }
-
-        if(input == NULL)
-        {
-            SDL_Log("Нулевой указатель на массив 0_0");
-            return -1;
-        }
-
-        float h1[128];
-        for (int j = 0; j < 128; j++) 
-        {
-            float sum = b1[j];
-            for (int i = 0; i < 784; i++) 
-            {
-                sum += input[i] * W1[i][j];
-            }
-            h1[j] = relu(sum);
-        }
-
-        float h2[64];
-        for (int j = 0; j < 64; j++) 
-        {
-            float sum = b2[j];
-            for (int i = 0; i < 128; i++) 
-            {
-                sum += h1[i] * W2[i][j];
-            }
-            h2[j] = relu(sum);
-        }
-
-        float out[10];
-        for (int j = 0; j < 10; j++) 
-        {
-            float sum = b3[j];
-            for (int i = 0; i < 64; i++)
-            { 
-                sum += h2[i] * W3[i][j];
-            }
-            out[j] = sum;
-        }
-
-        float probs[10];
-        softmax(out, 10, probs);
-
-        int pred = 0;
-        SDL_Log("Predicition:");
-        for (int i = 1; i < 10; i++) 
-        {
-            SDL_Log("%i - %f%\t", i, probs[i]*100);
-            if (probs[i] > probs[pred]) 
-            {
-                pred = i;
-            }
-        }
-        return pred;
-    }
-}
-class Square
+class Rectangle
 {
     int x, y, pixel, borderSize, w, h;
-    float *data;
     public:
-    Square(int sX = 0, int sY = 0, int pixSize = 5, int sBorderSize = 0, int width = 0, int height = 0) : x(sX), y(sY), pixel(pixSize), borderSize(sBorderSize), w(width), h(height)
+    double *data;
+    Rectangle(int sX = 0, int sY = 0, int pixSize = 5, int sBorderSize = 0, int width = 0, int height = 0) : x(sX), y(sY), pixel(pixSize), borderSize(sBorderSize), w(width), h(height)
     {
-        data = new float[w * h];
+        data = new double[w * h];
         if(data == NULL)
         {
             SDL_Log("Не удалось создать массив");
             return;
         }
     }
-    void fill()
+    void fill(double num = 0.0)
     {
         if(data == NULL)
         {
@@ -196,7 +217,7 @@ class Square
 
         for(int i = 0; i < w * h; i++)
         {
-            data[i] = 1;
+            data[i] = num;
         }
     
     }
@@ -205,7 +226,7 @@ class Square
         x = newX;
         y = newY;
     }
-    void draw(SDL_Renderer *rend = nullptr)
+    void render(SDL_Renderer *rend = nullptr)
     {
         // Border
         SDL_FRect rect = {x - pixel * w / 2.0 - borderSize, y - pixel * h / 2.0 - borderSize, pixel * w + borderSize * 2, pixel * h + borderSize * 2};
@@ -227,45 +248,35 @@ class Square
         for(int i = 0; i < w * h; i++)
         {
             SDL_SetRenderDrawColor(rend, 255 * data[i], 255 * data[i], 255 * data[i], 0xFF);
-            SDL_FRect rect = {x - pixel * (i % w - (w - 2) / 2.0), y - pixel * (i / w - (h - 2) / 2.0), pixel, pixel };
+            SDL_FRect rect = {x + pixel * (w / -2.0 + i % w), y + pixel * (h / -2.0 + i / w), pixel, pixel };
             SDL_RenderFillRect(rend, &rect);
         }
     }
-    void click(double mouseX = 0, double mouseY = 0, bool paint = true)
+    void clickAt(double mouseX = 0, double mouseY = 0, bool paint = true)
     {
         if(data == NULL)
         {
             SDL_Log("Нулевой указатель на массив 0_0");
             return;
         }
-        int m = (x - mouseX + (w / 2.0) * pixel) / pixel;
-        int n = (y - mouseY + (h / 2.0) * pixel) / pixel;
+        int m = (mouseX - x) / pixel + w / 2.0;
+        int n = (mouseY - y) / pixel + h / 2.0;
         if(m >= 0 & m < w)
         {
             if(n >= 0 & n < h)
             {
                 if(paint)
                 {
-                    double distX = x - pixel * (m - (w - 2) / 2.0 - 0.5) - mouseX;
-                    double distY = y - pixel * (n - (h - 2) / 2.0 - 0.5) - mouseY;
-                    distX /= pixel / 2;
-                    distY /= pixel / 2;
-                    double dist = 1 - max(abs(distY), abs(distY));
-                    if(dist > data[m + n * w])
-                    {
-                        data[m + n * w] = dist;
-                    }
+                    data[m + n * w] = 1.0;
                 }
                 else
                 {
                     data[m + n * w] = 0.0;
                 }
             }
-            crapcode::forward(data);
         }  
     }
-    
-    void destroy()
+    void quit()
     {
         delete[] data;
         data = nullptr;
@@ -310,13 +321,16 @@ class Program
 class Intellect : public Program
 {
     private:
-    Square sq = {400, 300, 10, 10, 28, 28};
+    Rectangle paint = {400, 300, 15, 15, 28, 28};
+    NumNeuralNetwork nw;
+    double *results = nullptr;
     public:
     bool init()
     {
+        paint.fill(0.0);
+        results = nw.recognise(paint.data);
         char title[] = "Шлюшны Інтылект";
-        return Program::init(title, 800, 600, SDL_WINDOW_RESIZABLE);
-        sq.fill();
+        return Program::init(title, 1200, 750, SDL_WINDOW_RESIZABLE);
     }
     void render()
     {
@@ -329,9 +343,21 @@ class Intellect : public Program
         SDL_SetRenderDrawColor(renderer, 0x00, 0xFF, 0xAA, 0xFF);
         int w, h;
         SDL_GetWindowSizeInPixels(window, &w, &h);
-        sq.changePos(w / 2, h / 2);
-        sq.draw(renderer);
-        
+        paint.changePos(w / 3, h / 2);
+        paint.render(renderer);
+        if(results != nullptr)
+        {
+            float scale = 3.0;
+            float gap = 15.0*28.0 / 10.0 / scale;
+            SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+            SDL_SetRenderScale(renderer, scale, scale);
+            for(int i = 0; i < 10; i++)
+            {
+                string s = to_string(i) + " - " + to_string(results[i] * 100.0) + "%";
+                SDL_RenderDebugText(renderer, (w / scale) * 2.0 / 3.0, (h / scale) / 2.0 - gap * 5.0 + gap * i , s.c_str());
+            }
+            SDL_SetRenderScale(renderer, 1.0, 1.0);
+        }
 
         SDL_RenderPresent(renderer);
     }
@@ -350,7 +376,6 @@ class Intellect : public Program
             frames++;
             if(deltaTime > 1000)
             {
-                //SDL_Log("FPS: %i", frames);
                 lastTime = currTime;
                 frames = 0;
             }
@@ -366,26 +391,14 @@ class Intellect : public Program
                 } 
                 else if(e.type == SDL_EVENT_MOUSE_MOTION & hold)
                 {
-                    if(e.button.button == 1) // Если левый клик - рисовать
-                    {
-                        sq.click(e.motion.x, e.motion.y, true);
-                    }
-                    else // Остальные клики - стирать
-                    {
-                        sq.click(e.motion.x, e.motion.y, false);
-                    }
+                    paint.clickAt(e.motion.x, e.motion.y, e.button.button == 1);
+                    results = nw.recognise(paint.data);
                 }
                 else if(e.type == SDL_EVENT_MOUSE_BUTTON_DOWN | e.type == SDL_EVENT_MOUSE_BUTTON_UP)
                 {
                     hold = !hold;
-                    if(e.button.button == 1) // Если левый клик - рисовать
-                    {
-                        sq.click(e.motion.x, e.motion.y, true);
-                    }
-                    else // Остальные клики - стирать
-                    {
-                        sq.click(e.motion.x, e.motion.y, false);
-                    }
+                    paint.clickAt(e.motion.x, e.motion.y, e.button.button == 1);
+                    results = nw.recognise(paint.data);
                 }
             }
         }
@@ -396,7 +409,7 @@ class Intellect : public Program
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         SDL_Quit();
-        sq.destroy();
+        paint.quit();
     }
 };
 int main()
