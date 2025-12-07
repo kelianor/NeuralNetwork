@@ -365,13 +365,13 @@ class Intellect : public Program
         if(results != nullptr)
         {
             float scale = 3.0;
-            float gap = 15.0*28.0 / 10.0 / scale;
+            float gap = 15.0*32.0 / 10.0;
             SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
             SDL_SetRenderScale(renderer, scale, scale);
             for(int i = 0; i < 10; i++)
             {
                 string s = to_string(i) + " - " + to_string(results[i] * 100.0) + "%";
-                SDL_RenderDebugText(renderer, (w / scale) * 2.0 / 3.0, (h / scale) / 2.0 - gap * 5.0 + gap * i , s.c_str());
+                SDL_RenderDebugText(renderer, (w * 2.0 / 3.0) / scale, (h / 2.0 - 15 * 15 + gap * i) / scale, s.c_str());
             }
             SDL_SetRenderScale(renderer, 1.0, 1.0);
         }
