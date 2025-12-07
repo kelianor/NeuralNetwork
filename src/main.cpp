@@ -351,13 +351,13 @@ class Intellect : public Program
     }
     void render()
     {
-        // Black background
-        SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
+        // Background
+        SDL_SetRenderDrawColor(renderer, 0x10, 0x10, 0x10, 0xFF);
         SDL_RenderClear(renderer);
 
         // Rectangle
 
-        SDL_SetRenderDrawColor(renderer, 0x00, 0xFF, 0xAA, 0xFF);
+        SDL_SetRenderDrawColor(renderer, 0xFF, 0x65, 0x00, 0xFF);
         int w, h;
         SDL_GetWindowSizeInPixels(window, &w, &h);
         paint.changePos(w / 3, h / 2);
