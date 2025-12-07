@@ -417,6 +417,13 @@ class Intellect : public Program
                     paint.clickAt(e.motion.x, e.motion.y, e.button.button == 1);
                     results = nw.recognise(paint.data);
                 }
+                else if(e.type == SDL_EVENT_KEY_DOWN)
+                {
+                    if(e.key.key == SDLK_C)
+                    {
+                        paint.fill(0.0);
+                    }
+                }
             }
         }
         
