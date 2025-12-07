@@ -122,6 +122,23 @@ private:
         file.close();
         return arr;
     }
+
+    void removeWeights(double **arr, int m)
+    {
+        for(int i = 0; i < m; i++)
+        {
+            delete[] arr[i];
+            arr[i] = nullptr;
+        }
+        delete[] arr;
+        arr = nullptr;
+    }
+
+    void removeBias(double *arr)
+    {
+        delete[] arr;
+        arr = nullptr;
+    }
 public:
     NumNeuralNetwork()
     {
@@ -172,6 +189,24 @@ public:
         out.deleteNeruons();
 
         return output;
+    }
+    ~NumNeuralNetwork()
+    {
+        // Hidden layer 1
+        removeWeights(weights1, 256);
+        removeBias(bias1);
+
+        // Hidden layer 2
+        removeWeights(weights2, 128);
+        removeBias(bias2);
+
+        // Hidden layer 3
+        removeWeights(weights3, 64);
+        removeBias(bias3);
+
+        // Output layer
+        removeWeights(weights4, 10);
+        removeBias(bias4);
     }
 };
 
